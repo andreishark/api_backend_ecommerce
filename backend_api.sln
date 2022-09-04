@@ -1,0 +1,58 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30114.105
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "api_service", "api_service\api_service.csproj", "{C9D33421-0015-40B7-BFE7-6BDA47485559}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "api_service.Tests", "api_service.Tests\api_service.Tests.csproj", "{DF30BF54-1072-4EB5-802C-9C7957A40B88}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DatabaseLibrary", "DatabaseLibrary\DatabaseLibrary.csproj", "{619F3C9F-F16E-44D3-8F95-B4C1213717AE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MongoDatabaseLibrary", "MongoDatabaseLibrary\MongoDatabaseLibrary.csproj", "{AEFE3E2C-3F95-4846-87DA-B187148DC493}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MongoDatabaseLibrary.Tests", "MongoDatabaseLibrary.Tests\MongoDatabaseLibrary.Tests.csproj", "{4B20EBAE-4467-4185-864E-C35A8F23A43E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Models", "Models\Models.csproj", "{51F99097-3BC2-4D19-8168-D3982CB65AF5}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FakeModelsService", "FakeModelsService\FakeModelsService.csproj", "{405F240B-A822-42A9-B8A7-9EDD16B17A7F}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{C9D33421-0015-40B7-BFE7-6BDA47485559}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C9D33421-0015-40B7-BFE7-6BDA47485559}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C9D33421-0015-40B7-BFE7-6BDA47485559}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C9D33421-0015-40B7-BFE7-6BDA47485559}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DF30BF54-1072-4EB5-802C-9C7957A40B88}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DF30BF54-1072-4EB5-802C-9C7957A40B88}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DF30BF54-1072-4EB5-802C-9C7957A40B88}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DF30BF54-1072-4EB5-802C-9C7957A40B88}.Release|Any CPU.Build.0 = Release|Any CPU
+		{619F3C9F-F16E-44D3-8F95-B4C1213717AE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{619F3C9F-F16E-44D3-8F95-B4C1213717AE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{619F3C9F-F16E-44D3-8F95-B4C1213717AE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{619F3C9F-F16E-44D3-8F95-B4C1213717AE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AEFE3E2C-3F95-4846-87DA-B187148DC493}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AEFE3E2C-3F95-4846-87DA-B187148DC493}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AEFE3E2C-3F95-4846-87DA-B187148DC493}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AEFE3E2C-3F95-4846-87DA-B187148DC493}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4B20EBAE-4467-4185-864E-C35A8F23A43E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4B20EBAE-4467-4185-864E-C35A8F23A43E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4B20EBAE-4467-4185-864E-C35A8F23A43E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4B20EBAE-4467-4185-864E-C35A8F23A43E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{51F99097-3BC2-4D19-8168-D3982CB65AF5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{51F99097-3BC2-4D19-8168-D3982CB65AF5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{51F99097-3BC2-4D19-8168-D3982CB65AF5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{51F99097-3BC2-4D19-8168-D3982CB65AF5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{405F240B-A822-42A9-B8A7-9EDD16B17A7F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{405F240B-A822-42A9-B8A7-9EDD16B17A7F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{405F240B-A822-42A9-B8A7-9EDD16B17A7F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{405F240B-A822-42A9-B8A7-9EDD16B17A7F}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
