@@ -64,22 +64,22 @@ public class CatalogController : ControllerBase
 
         _logger.LogInformation ( "Getting product image" );
 
-        IFormFile? file;
-        try
-        {
-            file = Request.Form.Files.SingleOrDefault ( );
-        }
-        catch ( InvalidOperationException e )
-        {
-            _logger.LogError ( "Could not read form files: {}", e.Message );
-            return Problem ( "Could not read form files" );
-        }
+        // IFormFile? file;
+        // try
+        // {
+        //     file = Request.Form.Files.SingleOrDefault ( );
+        // }
+        // catch ( InvalidOperationException e )
+        // {
+        //     _logger.LogError ( "Could not read form files: {}", e.Message );
+        //     return Problem ( "Could not read form files" );
+        // }
 
-        if ( file is null )
-        {
-            _logger.LogWarning ( "Product with name {} doesn't have an image", product.Name );
-            return BadRequest ( ModelState );
-        }
+        // if ( file is null )
+        // {
+        //     _logger.LogWarning ( "Product with name {} doesn't have an image", product.Name );
+        //     return BadRequest ( ModelState );
+        // }
 
         _logger.LogInformation ( "Verifying model" );
         if ( !ModelState.IsValid )
