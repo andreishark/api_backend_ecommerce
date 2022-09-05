@@ -41,7 +41,7 @@ public static class HelperClassModels
         ImageLocation = item.ImageLocation,
     };
 
-    public static CatalogItem AsCatalogItem ( this CatalogItemCreateDto item, string imageLocation ) => new ( )
+    public static CatalogItem AsCatalogItem ( this CatalogItemCreateDto item, List<string> imageLocation ) => new ( )
     {
         Name = item.Name,
         Id = Guid.NewGuid ( ),
@@ -59,11 +59,22 @@ public static class HelperClassModels
         Description = item.Description,
     };
 
-    public static CatalogItem AsCatalogItem ( this CatalogItemCreateDto item, string imageLocation, Guid id ) => new ( )
+    public static CatalogItem AsCatalogItem ( this CatalogItemCreateDto item, List<string> imageLocation, Guid id ) => new ( )
     {
         Name = item.Name,
         Id = id,
         CreatedDate = DateTime.UtcNow,
+        UpdatedDate = DateTime.UtcNow,
+        Price = item.Price,
+        Description = item.Description,
+        ImageLocation = imageLocation,
+    };
+
+    public static CatalogItem AsCatalogItem ( this CatalogItemCreateDto item, List<string> imageLocation, Guid id, DateTimeOffset createdTime ) => new ( )
+    {
+        Name = item.Name,
+        Id = id,
+        CreatedDate = createdTime,
         UpdatedDate = DateTime.UtcNow,
         Price = item.Price,
         Description = item.Description,

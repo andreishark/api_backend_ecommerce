@@ -82,7 +82,7 @@ public class MongoDbCatalogItemRepository : ICatalogItemRepository
         return await _catalogItemCollection.FindOneAndUpdateAsync ( filter, update, updateOptions );
     }
 
-    public async Task<CatalogItem?> UpdateCatalogItemImageById ( string newImageLocation, Guid id )
+    public async Task<CatalogItem?> UpdateCatalogItemImageById ( List<string> newImageLocation, Guid id )
     {
         var update = updateBuilderCatalogItem.Set ( item => item.ImageLocation, newImageLocation ).Set ( item => item.UpdatedDate, DateTime.UtcNow );
         var filter = filterBuilderCatalogItem.Eq ( item => item.Id, id );

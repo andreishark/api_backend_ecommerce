@@ -943,7 +943,7 @@ public class MongoDbCatalogItemRepositoryUnitTest
     [Fact]
     public async Task UpdateCatalogItemImageById_WithExistingItems_ReturnsAllItemsWithModifiedItem ( )
     {
-        var newImageAddress = Faker.Internet.Url ( );
+        var newImageAddress = FakeModels.CreateManyImageLocations ( );
         var newUpdateTime = DateTime.UtcNow.AddSeconds ( Faker.RandomNumber.Next ( 0, 10 ) );
         var product = FakeModels.CreateFakeCatalogItem ( );
         var expectedProduct = product.CopyCatalogItem ( );
@@ -995,7 +995,7 @@ public class MongoDbCatalogItemRepositoryUnitTest
     [Fact]
     public async Task UpdateCatalogItemImageById_WithOneItem_ReturnsOneModifiedItem ( )
     {
-        var newImageAddress = Faker.Internet.Url ( );
+        var newImageAddress = FakeModels.CreateManyImageLocations ( );
         var newUpdateTime = DateTime.UtcNow.AddSeconds ( Faker.RandomNumber.Next ( 0, 10 ) );
         var product = FakeModels.CreateFakeCatalogItem ( );
         var expectedProduct = product.CopyCatalogItem ( );
@@ -1042,7 +1042,7 @@ public class MongoDbCatalogItemRepositoryUnitTest
     public async Task UpdateCatalogItemImageById_WithNoItems_ReturnsNull ( )
     {
         var newId = Guid.NewGuid ( );
-        var newImageAddress = Faker.Internet.Url ( );
+        var newImageAddress = FakeModels.CreateManyImageLocations ( );
         var newUpdateTime = DateTime.UtcNow.AddSeconds ( Faker.RandomNumber.Next ( 0, 10 ) );
         var productList = new List<CatalogItem> ( ) { };
 
@@ -1072,7 +1072,7 @@ public class MongoDbCatalogItemRepositoryUnitTest
     [Fact]
     public async Task UpdateCatalogItemImageById_WithExistingItems_ReturnsNull ( )
     {
-        var newImageAddress = Faker.Internet.Url ( );
+        var newImageAddress = FakeModels.CreateManyImageLocations ( );
         var newUpdateTime = DateTime.UtcNow.AddSeconds ( Faker.RandomNumber.Next ( 0, 10 ) );
         var product = FakeModels.CreateFakeCatalogItem ( );
         var productList = new List<CatalogItem> ( ) { };
