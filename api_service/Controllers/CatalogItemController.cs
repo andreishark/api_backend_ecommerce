@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Models;
 using Models.CreateDto;
 using Models.GetDto;
+using Models.models;
 
 namespace api_service.Controllers;
 
@@ -15,13 +16,22 @@ public class CatalogController : ControllerBase
     private readonly ILogger<CatalogController> _logger;
     private readonly ICatalogItemRepository _catalogItemRepository;
     private readonly IApiConfiguration _config;
-    private readonly string staticImagesPath = "static/images/CatalogItems";
+    private readonly IWebHostEnvironment _hostEnvironment;
+    private readonly string staticImagesPathApi = "static/images/CatalogItems";
+    private readonly string staticImagesPathDisk;
 
-    public CatalogController ( ILogger<CatalogController> logger, ICatalogItemRepository customersRepository, IApiConfiguration config )
+    public CatalogController (
+        ILogger<CatalogController> logger,
+        ICatalogItemRepository customersRepository,
+        IApiConfiguration config,
+        IWebHostEnvironment hostEnvironment )
     {
         _logger = logger;
         _catalogItemRepository = customersRepository;
         _config = config;
+        _hostEnvironment = hostEnvironment;
+
+        staticImagesPathDisk = Path.Combine ( _hostEnvironment.ContentRootPath, "Static/images/CatalogItems" );
 
         _logger.LogInformation ( "CatalogController initialized" );
     }
@@ -64,22 +74,23 @@ public class CatalogController : ControllerBase
 
         _logger.LogInformation ( "Getting product image" );
 
-        // IFormFile? file;
-        // try
-        // {
-        //     file = Request.Form.Files.SingleOrDefault ( );
-        // }
-        // catch ( InvalidOperationException e )
-        // {
-        //     _logger.LogError ( "Could not read form files: {}", e.Message );
-        //     return Problem ( "Could not read form files" );
-        // }
+        IFormFile? file;
+        try
+        {
+            file = Request.Form.Files.SingleOrDefault ( );
+        }
+        catch ( InvalidOperationException ex )
+        {
+            _logger.LogError ( "Could not read form files: {}", ex.Message );
+            _logger.LogTrace ( ex.StackTrace );
+            return Problem ( "Could not read form files" );
+        }
 
-        // if ( file is null )
-        // {
-        //     _logger.LogWarning ( "Product with name {} doesn't have an image", product.Name );
-        //     return BadRequest ( ModelState );
-        // }
+        if ( file is null || file.Length == 0 )
+        {
+            _logger.LogWarning ( "Product with name {} doesn't have an image", product.Name );
+            return BadRequest ( ModelState );
+        }
 
         _logger.LogInformation ( "Verifying model" );
         if ( !ModelState.IsValid )
@@ -88,8 +99,32 @@ public class CatalogController : ControllerBase
             return BadRequest ( ModelState );
         }
 
+        _logger.LogInformation ( "Generating Guid" );
+        var product_id = Guid.NewGuid ( );
+        var image_id = Guid.NewGuid ( );
+
+        _logger.LogInformation ( "Creating apiPath for image" );
+        var apiPath = Path.Combine ( staticImagesPathApi, product_id.ToString ( ), image_id.ToString ( ) );
+
+        _logger.LogInformation ( "Trying to upload image to disk" );
+        try
+        {
+            string filePath = Path.Combine ( staticImagesPathDisk, product_id.ToString ( ), image_id.ToString ( ) );
+
+            using Stream fileStream = new FileStream ( filePath, FileMode.Create );
+            await file.CopyToAsync ( fileStream );
+        }
+        catch ( System.Exception ex )
+        {
+            _logger.LogError ( "File couldn't be written to disk.\nError: {}", ex.Message );
+            _logger.LogTrace ( ex.StackTrace );
+            return Problem ( "File couldn't be written to disk" );
+        }
+
+        _logger.LogInformation ( "File uploaded successfully." );
+
         _logger.LogInformation ( "Creating product with name {}", product.Name );
-        var createdProduct = await _catalogItemRepository.CreateCatalogItem ( product.AsCatalogItem ( ) );
+        var createdProduct = await _catalogItemRepository.CreateCatalogItem ( product.AsCatalogItem ( apiPath, product_id ) );
 
         if ( createdProduct == null )
         {
@@ -127,11 +162,57 @@ public class CatalogController : ControllerBase
         }
         _logger.LogInformation ( "Item with id {} found", id );
 
+        string? apiPath = null;
+        _logger.LogInformation ( "Getting product image" );
+
+        IFormFile? file;
+        try
+        {
+            file = Request.Form.Files.SingleOrDefault ( );
+
+            if ( file is null || file.Length == 0 )
+            {
+                _logger.LogWarning ( "Product wasn't appended to request" );
+                return BadRequest ( ModelState );
+            }
+
+            _logger.LogInformation ( "Generating Guid" );
+            var image_id = Guid.NewGuid ( );
+
+            _logger.LogInformation ( "Creating apiPath for image" );
+            apiPath = Path.Combine ( staticImagesPathApi, oldItem.Id.ToString ( ), image_id.ToString ( ) );
+
+            _logger.LogInformation ( "Trying to upload image to disk" );
+            try
+            {
+                string filePath = Path.Combine ( staticImagesPathDisk, oldItem.Id.ToString ( ), image_id.ToString ( ) );
+
+                using Stream fileStream = new FileStream ( filePath, FileMode.Create );
+                await file.CopyToAsync ( fileStream );
+            }
+            catch ( System.Exception ex )
+            {
+                _logger.LogError ( "File couldn't be written to disk.\nError: {}", ex.Message );
+                _logger.LogTrace ( ex.StackTrace );
+                return Problem ( "File couldn't be written to disk" );
+            }
+        }
+        catch ( InvalidOperationException ex )
+        {
+            _logger.LogWarning ( "Could not read form files: {}, skipping image check", ex.Message );
+        }
+
+
         CatalogItemCreateDto oldItemCreateDto = oldItem.AsCreateDto ( );
 
         patchDoc.ApplyTo ( oldItemCreateDto );
 
-        var newItem = oldItemCreateDto.AsCatalogItem ( );
+        CatalogItem? newItem;
+
+        if ( apiPath is null )
+            newItem = oldItemCreateDto.AsCatalogItem ( oldItem.ImageLocation, oldItem.Id );
+        else
+            newItem = oldItemCreateDto.AsCatalogItem ( apiPath, oldItem.Id );
 
         _logger.LogInformation ( "Replacing item with id {}", id );
         var returnedItem = await _catalogItemRepository.ReplaceCatalogItemById ( newItem, id );
