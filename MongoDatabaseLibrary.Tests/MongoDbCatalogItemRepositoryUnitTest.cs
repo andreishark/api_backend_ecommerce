@@ -1,4 +1,5 @@
 using fakeModelsService;
+using Faker;
 using Models;
 using Models.models;
 using MongoDatabaseLibrary.Factories;
@@ -106,7 +107,7 @@ public class MongoDbCatalogItemRepositoryUnitTest
             default
         ) ).ReturnsAsync ( filteredCursor.Object );
 
-        collection.Setup ( funcCollection => funcCollection.FindOneAndUpdateAsync<CatalogItem?> (
+        collection.Setup ( funcCollection => funcCollection.FindOneAndUpdateAsync (
             It.IsAny<FilterDefinition<CatalogItem>> ( ),
             It.IsAny<UpdateDefinition<CatalogItem>> ( ),
             It.Is<FindOneAndUpdateOptions<CatalogItem, CatalogItem?>> (
@@ -121,7 +122,7 @@ public class MongoDbCatalogItemRepositoryUnitTest
     private static Mock<IMongoCollection<CatalogItem>> CreateMockIMongoCollectionInsert ( IAsyncCursor<CatalogItem> cursor, CatalogItem insertedItem )
     {
         var collection = new Mock<IMongoCollection<CatalogItem>> ( );
-        var totalItems = new List<CatalogItem> ( ) { };
+        var totalItems = new List<CatalogItem> ( );
 
         cursor.ForEachAsync ( item =>
         {
@@ -149,7 +150,7 @@ public class MongoDbCatalogItemRepositoryUnitTest
     private static Mock<IMongoCollection<CatalogItem>> CreateMockIMongoCollectionDelete ( IAsyncCursor<CatalogItem> cursor, Func<CatalogItem, bool> filter )
     {
         var collection = new Mock<IMongoCollection<CatalogItem>> ( );
-        var totalItems = new List<CatalogItem> ( ) { };
+        var totalItems = new List<CatalogItem> ( );
         CatalogItem? deletedItem = null;
 
         cursor.ForEachAsync ( item =>
@@ -218,7 +219,7 @@ public class MongoDbCatalogItemRepositoryUnitTest
             default
         ) ).ReturnsAsync ( filteredCursor.Object );
 
-        collection.Setup ( funcCollection => funcCollection.FindOneAndReplaceAsync<CatalogItem?> (
+        collection.Setup ( funcCollection => funcCollection.FindOneAndReplaceAsync (
             It.IsAny<FilterDefinition<CatalogItem>> ( ),
             It.IsAny<CatalogItem> ( ),
             It.Is<FindOneAndReplaceOptions<CatalogItem, CatalogItem?>> (
@@ -238,7 +239,7 @@ public class MongoDbCatalogItemRepositoryUnitTest
     {
         // Arrange
         var product = FakeModels.CreateFakeCatalogItem ( );
-        var productList = new List<CatalogItem> ( ) { product };
+        var productList = new List<CatalogItem> { product };
 
         var cursor = CreateMockIAsyncCursor ( productList );
         var collection = CreateMockIMongoCollectionFind ( cursor.Object, item => item.Id == product.Id );
@@ -254,11 +255,11 @@ public class MongoDbCatalogItemRepositoryUnitTest
     }
 
     [Fact]
-    public async Task GetCatalogItemById_WithNonexistingItem_ReturnsNull ( )
+    public async Task GetCatalogItemById_WithNonExistingItem_ReturnsNull ( )
     {
         var productId = Guid.NewGuid ( );
         // Arrange
-        var productList = new List<CatalogItem> ( ) { };
+        var productList = new List<CatalogItem> ( );
 
         var cursor = CreateMockIAsyncCursor ( productList );
         var collection = CreateMockIMongoCollectionFind ( cursor.Object, item => item.Id == productId );
@@ -277,7 +278,7 @@ public class MongoDbCatalogItemRepositoryUnitTest
     public async Task GetCatalogItemById_WithExistingItems_ReturnsOneItem ( )
     {
         var product = FakeModels.CreateFakeCatalogItem ( );
-        var productList = new List<CatalogItem> ( ) { product };
+        var productList = new List<CatalogItem> { product };
         var count = 5;
 
         for ( var i = 0; i < count; i++ )
@@ -301,7 +302,7 @@ public class MongoDbCatalogItemRepositoryUnitTest
     public async Task GetCatalogItemById_WithExistingItems_ReturnsNoItem ( )
     {
         var productId = Guid.NewGuid ( );
-        var productList = new List<CatalogItem> ( ) { };
+        var productList = new List<CatalogItem> ( );
         var count = 6;
 
         for ( var i = 0; i < count; i++ )
@@ -326,7 +327,7 @@ public class MongoDbCatalogItemRepositoryUnitTest
     {
         var productId = Guid.NewGuid ( );
         var product = FakeModels.CreateFakeCatalogItem ( );
-        var productList = new List<CatalogItem> ( ) { product };
+        var productList = new List<CatalogItem> { product };
 
         var cursor = CreateMockIAsyncCursor ( productList );
         var collection = CreateMockIMongoCollectionFind ( cursor.Object, item => item.Id == productId );
@@ -343,7 +344,7 @@ public class MongoDbCatalogItemRepositoryUnitTest
     [Fact]
     public async Task GetAllCatalogItems_WithExistingItems_ReturnsAllItems ( )
     {
-        var productList = new List<CatalogItem> ( ) { };
+        var productList = new List<CatalogItem> ( );
         var count = 10;
 
         for ( var i = 0; i < count; i++ )
@@ -352,7 +353,7 @@ public class MongoDbCatalogItemRepositoryUnitTest
         }
 
         var cursor = CreateMockIAsyncCursor ( productList );
-        var collection = CreateMockIMongoCollectionFind ( cursor.Object, item => true );
+        var collection = CreateMockIMongoCollectionFind ( cursor.Object, _ => true );
         var mongoFactory = CreateMockIMongoDbFactory ( collection.Object );
 
         var repo = new MongoDbCatalogItemRepository ( mongoFactory.Object );
@@ -366,10 +367,10 @@ public class MongoDbCatalogItemRepositoryUnitTest
     [Fact]
     public async Task GetAllCatalogItems_WithNoItems_ReturnsNoItems ( )
     {
-        var productList = new List<CatalogItem> ( ) { };
+        var productList = new List<CatalogItem> ( );
 
         var cursor = CreateMockIAsyncCursor ( productList );
-        var collection = CreateMockIMongoCollectionFind ( cursor.Object, item => true );
+        var collection = CreateMockIMongoCollectionFind ( cursor.Object, _ => true );
         var mongoFactory = CreateMockIMongoDbFactory ( collection.Object );
 
         var repo = new MongoDbCatalogItemRepository ( mongoFactory.Object );
@@ -384,8 +385,8 @@ public class MongoDbCatalogItemRepositoryUnitTest
     public async Task CreateCatalogItem_WithOneItem_ReturnsAllItems ( )
     {
         var insertedProduct = FakeModels.CreateFakeCatalogItem ( );
-        var productList = new List<CatalogItem> ( ) { };
-        var expected = new List<CatalogItem> ( ) { };
+        var productList = new List<CatalogItem> ( );
+        var expected = new List<CatalogItem> ( );
         var count = 6;
 
         for ( var i = 0; i < count; i++ )
@@ -414,10 +415,8 @@ public class MongoDbCatalogItemRepositoryUnitTest
     public async Task CreateCatalogItem_WithNoItem_ReturnsOneItem ( )
     {
         var insertedProduct = FakeModels.CreateFakeCatalogItem ( );
-        var productList = new List<CatalogItem> ( ) { };
-        var expected = new List<CatalogItem> ( ) { };
-
-        expected.Add ( insertedProduct );
+        var productList = new List<CatalogItem> ( );
+        var expected = new List<CatalogItem> { insertedProduct };
 
         var cursor = CreateMockIAsyncCursor ( productList );
         var collection = CreateMockIMongoCollectionInsert ( cursor.Object, insertedProduct );
@@ -436,13 +435,13 @@ public class MongoDbCatalogItemRepositoryUnitTest
     [Fact]
     public async Task UpdateCatalogItemPriceyId_WithExistingItems_ReturnsAllItemsWithModifiedItem ( )
     {
-        var newPrice = Faker.RandomNumber.Next ( );
-        var newUpdateTime = DateTime.UtcNow.AddSeconds ( Faker.RandomNumber.Next ( 0, 10 ) );
+        var newPrice = RandomNumber.Next ( );
+        var newUpdateTime = DateTime.UtcNow.AddSeconds ( RandomNumber.Next ( 0, 10 ) );
         var product = FakeModels.CreateFakeCatalogItem ( );
         var expectedProduct = product.CopyCatalogItem ( );
         expectedProduct.UpdatedDate = newUpdateTime;
         expectedProduct.Price = newPrice;
-        var productList = new List<CatalogItem> ( ) { };
+        var productList = new List<CatalogItem> ( );
         var count = 10;
 
         for ( var i = 0; i < count; i++ )
@@ -488,15 +487,15 @@ public class MongoDbCatalogItemRepositoryUnitTest
     [Fact]
     public async Task UpdateCatalogItemPriceById_WithOneItem_ReturnsOneModifiedItem ( )
     {
-        var newPrice = Faker.RandomNumber.Next ( );
-        var newUpdateTime = DateTime.UtcNow.AddSeconds ( Faker.RandomNumber.Next ( 0, 10 ) );
+        var newPrice = RandomNumber.Next ( );
+        var newUpdateTime = DateTime.UtcNow.AddSeconds ( RandomNumber.Next ( 0, 10 ) );
         var product = FakeModels.CreateFakeCatalogItem ( );
         var expectedProduct = product.CopyCatalogItem ( );
         expectedProduct.UpdatedDate = newUpdateTime;
         expectedProduct.Price = newPrice;
-        var productList = new List<CatalogItem> ( ) { };
+        var productList = new List<CatalogItem> ( );
 
-        var expected = new List<CatalogItem> ( ) { };
+        var expected = new List<CatalogItem> ( );
 
         productList.Add ( product );
         expected.Add ( expectedProduct );
@@ -535,9 +534,9 @@ public class MongoDbCatalogItemRepositoryUnitTest
     public async Task UpdateCatalogItemPriceById_WithNoItems_ReturnsNull ( )
     {
         var newId = Guid.NewGuid ( );
-        var newPrice = Faker.RandomNumber.Next ( );
-        var newUpdateTime = DateTime.UtcNow.AddSeconds ( Faker.RandomNumber.Next ( 0, 10 ) );
-        var productList = new List<CatalogItem> ( ) { };
+        var newPrice = RandomNumber.Next ( );
+        var newUpdateTime = DateTime.UtcNow.AddSeconds ( RandomNumber.Next ( 0, 10 ) );
+        var productList = new List<CatalogItem> ( );
 
         var cursor = CreateMockIAsyncCursor ( productList );
         var collection = CreateMockIMongoCollectionUpdate ( cursor.Object, item => item.Id == newId, item => new ( )
@@ -565,10 +564,10 @@ public class MongoDbCatalogItemRepositoryUnitTest
     [Fact]
     public async Task UpdateCatalogItemPriceById_WithExistingItems_ReturnsNull ( )
     {
-        var newPrice = Faker.RandomNumber.Next ( );
-        var newUpdateTime = DateTime.UtcNow.AddSeconds ( Faker.RandomNumber.Next ( 0, 10 ) );
+        var newPrice = RandomNumber.Next ( );
+        var newUpdateTime = DateTime.UtcNow.AddSeconds ( RandomNumber.Next ( 0, 10 ) );
         var product = FakeModels.CreateFakeCatalogItem ( );
-        var productList = new List<CatalogItem> ( ) { };
+        var productList = new List<CatalogItem> ( );
         var count = 10;
 
         for ( var i = 0; i < count; i++ )
@@ -605,13 +604,13 @@ public class MongoDbCatalogItemRepositoryUnitTest
     [Fact]
     public async Task UpdateCatalogItemNameById_WithExistingItems_ReturnsAllItemsWithModifiedItem ( )
     {
-        var newName = Faker.Name.First ( );
-        var newUpdateTime = DateTime.UtcNow.AddSeconds ( Faker.RandomNumber.Next ( 0, 10 ) );
+        var newName = Name.First ( );
+        var newUpdateTime = DateTime.UtcNow.AddSeconds ( RandomNumber.Next ( 0, 10 ) );
         var product = FakeModels.CreateFakeCatalogItem ( );
         var expectedProduct = product.CopyCatalogItem ( );
         expectedProduct.UpdatedDate = newUpdateTime;
         expectedProduct.Name = newName;
-        var productList = new List<CatalogItem> ( ) { };
+        var productList = new List<CatalogItem> ( );
         var count = 10;
 
         for ( var i = 0; i < count; i++ )
@@ -657,15 +656,15 @@ public class MongoDbCatalogItemRepositoryUnitTest
     [Fact]
     public async Task UpdateCatalogItemNameById_WithOneItem_ReturnsOneModifiedItem ( )
     {
-        var newName = Faker.Name.First ( );
-        var newUpdateTime = DateTime.UtcNow.AddSeconds ( Faker.RandomNumber.Next ( 0, 10 ) );
+        var newName = Name.First ( );
+        var newUpdateTime = DateTime.UtcNow.AddSeconds ( RandomNumber.Next ( 0, 10 ) );
         var product = FakeModels.CreateFakeCatalogItem ( );
         var expectedProduct = product.CopyCatalogItem ( );
         expectedProduct.UpdatedDate = newUpdateTime;
         expectedProduct.Name = newName;
-        var productList = new List<CatalogItem> ( ) { };
+        var productList = new List<CatalogItem> ( );
 
-        var expected = new List<CatalogItem> ( ) { };
+        var expected = new List<CatalogItem> ( );
 
         productList.Add ( product );
         expected.Add ( expectedProduct );
@@ -704,9 +703,9 @@ public class MongoDbCatalogItemRepositoryUnitTest
     public async Task UpdateCatalogItemNameById_WithNoItems_ReturnsNull ( )
     {
         var newId = Guid.NewGuid ( );
-        var newName = Faker.Name.First ( );
-        var newUpdateTime = DateTime.UtcNow.AddSeconds ( Faker.RandomNumber.Next ( 0, 10 ) );
-        var productList = new List<CatalogItem> ( ) { };
+        var newName = Name.First ( );
+        var newUpdateTime = DateTime.UtcNow.AddSeconds ( RandomNumber.Next ( 0, 10 ) );
+        var productList = new List<CatalogItem> ( );
 
         var cursor = CreateMockIAsyncCursor ( productList );
         var collection = CreateMockIMongoCollectionUpdate ( cursor.Object, item => item.Id == newId, item => new ( )
@@ -734,10 +733,10 @@ public class MongoDbCatalogItemRepositoryUnitTest
     [Fact]
     public async Task UpdateCatalogItemNameById_WithExistingItems_ReturnsNull ( )
     {
-        var newName = Faker.Name.First ( );
-        var newUpdateTime = DateTime.UtcNow.AddSeconds ( Faker.RandomNumber.Next ( 0, 10 ) );
+        var newName = Name.First ( );
+        var newUpdateTime = DateTime.UtcNow.AddSeconds ( RandomNumber.Next ( 0, 10 ) );
         var product = FakeModels.CreateFakeCatalogItem ( );
-        var productList = new List<CatalogItem> ( ) { };
+        var productList = new List<CatalogItem> ( );
         var count = 10;
 
         for ( var i = 0; i < count; i++ )
@@ -774,13 +773,13 @@ public class MongoDbCatalogItemRepositoryUnitTest
     [Fact]
     public async Task UpdateCatalogItemDescriptionById_WithExistingItems_ReturnsAllItemsWithModifiedItem ( )
     {
-        var newDescription = Faker.Lorem.Paragraph ( );
-        var newUpdateTime = DateTime.UtcNow.AddSeconds ( Faker.RandomNumber.Next ( 0, 10 ) );
+        var newDescription = Lorem.Paragraph ( );
+        var newUpdateTime = DateTime.UtcNow.AddSeconds ( RandomNumber.Next ( 0, 10 ) );
         var product = FakeModels.CreateFakeCatalogItem ( );
         var expectedProduct = product.CopyCatalogItem ( );
         expectedProduct.UpdatedDate = newUpdateTime;
         expectedProduct.Description = newDescription;
-        var productList = new List<CatalogItem> ( ) { };
+        var productList = new List<CatalogItem> ( );
         var count = 10;
 
         for ( var i = 0; i < count; i++ )
@@ -826,15 +825,15 @@ public class MongoDbCatalogItemRepositoryUnitTest
     [Fact]
     public async Task UpdateCatalogItemDescriptionById_WithOneItem_ReturnsOneModifiedItem ( )
     {
-        var newDescription = Faker.Lorem.Paragraph ( );
-        var newUpdateTime = DateTime.UtcNow.AddSeconds ( Faker.RandomNumber.Next ( 0, 10 ) );
+        var newDescription = Lorem.Paragraph ( );
+        var newUpdateTime = DateTime.UtcNow.AddSeconds ( RandomNumber.Next ( 0, 10 ) );
         var product = FakeModels.CreateFakeCatalogItem ( );
         var expectedProduct = product.CopyCatalogItem ( );
         expectedProduct.UpdatedDate = newUpdateTime;
         expectedProduct.Description = newDescription;
-        var productList = new List<CatalogItem> ( ) { };
+        var productList = new List<CatalogItem> ( );
 
-        var expected = new List<CatalogItem> ( ) { };
+        var expected = new List<CatalogItem> ( );
 
         productList.Add ( product );
         expected.Add ( expectedProduct );
@@ -873,9 +872,9 @@ public class MongoDbCatalogItemRepositoryUnitTest
     public async Task UpdateCatalogItemDescriptionById_WithNoItems_ReturnsNull ( )
     {
         var newId = Guid.NewGuid ( );
-        var newDescription = Faker.Lorem.Paragraph ( );
-        var newUpdateTime = DateTime.UtcNow.AddSeconds ( Faker.RandomNumber.Next ( 0, 10 ) );
-        var productList = new List<CatalogItem> ( ) { };
+        var newDescription = Lorem.Paragraph ( );
+        var newUpdateTime = DateTime.UtcNow.AddSeconds ( RandomNumber.Next ( 0, 10 ) );
+        var productList = new List<CatalogItem> ( );
 
         var cursor = CreateMockIAsyncCursor ( productList );
         var collection = CreateMockIMongoCollectionUpdate ( cursor.Object, item => item.Id == newId, item => new ( )
@@ -903,10 +902,10 @@ public class MongoDbCatalogItemRepositoryUnitTest
     [Fact]
     public async Task UpdateCatalogItemDescriptionById_WithExistingItems_ReturnsNull ( )
     {
-        var newDescription = Faker.Lorem.Paragraph ( );
-        var newUpdateTime = DateTime.UtcNow.AddSeconds ( Faker.RandomNumber.Next ( 0, 10 ) );
+        var newDescription = Lorem.Paragraph ( );
+        var newUpdateTime = DateTime.UtcNow.AddSeconds ( RandomNumber.Next ( 0, 10 ) );
         var product = FakeModels.CreateFakeCatalogItem ( );
-        var productList = new List<CatalogItem> ( ) { };
+        var productList = new List<CatalogItem> ( );
         var count = 10;
 
         for ( var i = 0; i < count; i++ )
@@ -944,12 +943,12 @@ public class MongoDbCatalogItemRepositoryUnitTest
     public async Task UpdateCatalogItemImageById_WithExistingItems_ReturnsAllItemsWithModifiedItem ( )
     {
         var newImageAddress = FakeModels.CreateManyImageLocations ( );
-        var newUpdateTime = DateTime.UtcNow.AddSeconds ( Faker.RandomNumber.Next ( 0, 10 ) );
+        var newUpdateTime = DateTime.UtcNow.AddSeconds ( RandomNumber.Next ( 0, 10 ) );
         var product = FakeModels.CreateFakeCatalogItem ( );
         var expectedProduct = product.CopyCatalogItem ( );
         expectedProduct.UpdatedDate = newUpdateTime;
         expectedProduct.ImageLocation = newImageAddress;
-        var productList = new List<CatalogItem> ( ) { };
+        var productList = new List<CatalogItem> ( );
         var count = 10;
 
         for ( var i = 0; i < count; i++ )
@@ -996,14 +995,14 @@ public class MongoDbCatalogItemRepositoryUnitTest
     public async Task UpdateCatalogItemImageById_WithOneItem_ReturnsOneModifiedItem ( )
     {
         var newImageAddress = FakeModels.CreateManyImageLocations ( );
-        var newUpdateTime = DateTime.UtcNow.AddSeconds ( Faker.RandomNumber.Next ( 0, 10 ) );
+        var newUpdateTime = DateTime.UtcNow.AddSeconds ( RandomNumber.Next ( 0, 10 ) );
         var product = FakeModels.CreateFakeCatalogItem ( );
         var expectedProduct = product.CopyCatalogItem ( );
         expectedProduct.UpdatedDate = newUpdateTime;
         expectedProduct.ImageLocation = newImageAddress;
-        var productList = new List<CatalogItem> ( ) { };
+        var productList = new List<CatalogItem> ( );
 
-        var expected = new List<CatalogItem> ( ) { };
+        var expected = new List<CatalogItem> ( );
 
         productList.Add ( product );
         expected.Add ( expectedProduct );
@@ -1043,8 +1042,8 @@ public class MongoDbCatalogItemRepositoryUnitTest
     {
         var newId = Guid.NewGuid ( );
         var newImageAddress = FakeModels.CreateManyImageLocations ( );
-        var newUpdateTime = DateTime.UtcNow.AddSeconds ( Faker.RandomNumber.Next ( 0, 10 ) );
-        var productList = new List<CatalogItem> ( ) { };
+        var newUpdateTime = DateTime.UtcNow.AddSeconds ( RandomNumber.Next ( 0, 10 ) );
+        var productList = new List<CatalogItem> ( );
 
         var cursor = CreateMockIAsyncCursor ( productList );
         var collection = CreateMockIMongoCollectionUpdate ( cursor.Object, item => item.Id == newId, item => new ( )
@@ -1073,9 +1072,9 @@ public class MongoDbCatalogItemRepositoryUnitTest
     public async Task UpdateCatalogItemImageById_WithExistingItems_ReturnsNull ( )
     {
         var newImageAddress = FakeModels.CreateManyImageLocations ( );
-        var newUpdateTime = DateTime.UtcNow.AddSeconds ( Faker.RandomNumber.Next ( 0, 10 ) );
+        var newUpdateTime = DateTime.UtcNow.AddSeconds ( RandomNumber.Next ( 0, 10 ) );
         var product = FakeModels.CreateFakeCatalogItem ( );
-        var productList = new List<CatalogItem> ( ) { };
+        var productList = new List<CatalogItem> ( );
         var count = 10;
 
         for ( var i = 0; i < count; i++ )
@@ -1114,7 +1113,7 @@ public class MongoDbCatalogItemRepositoryUnitTest
     {
         var product = FakeModels.CreateFakeCatalogItem ( );
         var newItem = FakeModels.CreateFakeCatalogItemById ( product.Id );
-        var productList = new List<CatalogItem> ( ) { };
+        var productList = new List<CatalogItem> ( );
         var count = 10;
 
         for ( var i = 0; i < count; i++ )
@@ -1152,9 +1151,7 @@ public class MongoDbCatalogItemRepositoryUnitTest
     {
         var product = FakeModels.CreateFakeCatalogItem ( );
         var newItem = FakeModels.CreateFakeCatalogItemById ( product.Id );
-        var productList = new List<CatalogItem> ( ) { };
-
-        productList.Add ( product );
+        var productList = new List<CatalogItem> { product };
 
         var cursor = CreateMockIAsyncCursor ( productList );
         var collection = CreateMockIMongoCollectionReplace ( cursor.Object, item => item.Id == product.Id, newItem );
@@ -1184,7 +1181,7 @@ public class MongoDbCatalogItemRepositoryUnitTest
     {
         var product = FakeModels.CreateFakeCatalogItem ( );
         var newItem = FakeModels.CreateFakeCatalogItemById ( product.Id );
-        var productList = new List<CatalogItem> ( ) { };
+        var productList = new List<CatalogItem> ( );
 
         var cursor = CreateMockIAsyncCursor ( productList );
         var collection = CreateMockIMongoCollectionReplace ( cursor.Object, item => item.Id == product.Id, newItem );
@@ -1203,9 +1200,7 @@ public class MongoDbCatalogItemRepositoryUnitTest
         var fakeProduct = FakeModels.CreateFakeCatalogItem ( );
         var product = FakeModels.CreateFakeCatalogItem ( );
         var newItem = FakeModels.CreateFakeCatalogItemById ( product.Id );
-        var productList = new List<CatalogItem> ( ) { };
-
-        productList.Add ( fakeProduct );
+        var productList = new List<CatalogItem> { fakeProduct };
 
         var cursor = CreateMockIAsyncCursor ( productList );
         var collection = CreateMockIMongoCollectionReplace ( cursor.Object, item => item.Id == product.Id, newItem );
@@ -1223,8 +1218,8 @@ public class MongoDbCatalogItemRepositoryUnitTest
     public async Task DeleteCatalogItemById_WithOneItem_ReturnsAllItems ( )
     {
         var deletedProduct = FakeModels.CreateFakeCatalogItem ( );
-        var productList = new List<CatalogItem> ( ) { };
-        bool filter ( CatalogItem item ) => item.Id == deletedProduct.Id;
+        var productList = new List<CatalogItem> ( );
+        bool Filter ( CatalogItem item ) => item.Id == deletedProduct.Id;
         var count = 6;
 
         for ( var i = 0; i < count; i++ )
@@ -1234,10 +1229,10 @@ public class MongoDbCatalogItemRepositoryUnitTest
         }
         productList.Add ( deletedProduct );
 
-        var expected = new List<CatalogItem> ( productList ).Where ( item => !filter ( item ) ).ToList ( );
+        var expected = new List<CatalogItem> ( productList ).Where ( item => !Filter ( item ) ).ToList ( );
 
         var cursor = CreateMockIAsyncCursor ( productList );
-        var collection = CreateMockIMongoCollectionDelete ( cursor.Object, filter );
+        var collection = CreateMockIMongoCollectionDelete ( cursor.Object, Filter );
         var mongoFactory = CreateMockIMongoDbFactory ( collection.Object );
 
         var repo = new MongoDbCatalogItemRepository ( mongoFactory.Object );
@@ -1254,15 +1249,13 @@ public class MongoDbCatalogItemRepositoryUnitTest
     public async Task DeleteCatalogItemById_WithOneItem_ReturnsOneItem ( )
     {
         var deletedProduct = FakeModels.CreateFakeCatalogItem ( );
-        var productList = new List<CatalogItem> ( ) { };
-        bool filter ( CatalogItem item ) => item.Id == deletedProduct.Id;
+        var productList = new List<CatalogItem> ( );
+        bool Filter ( CatalogItem item ) => item.Id == deletedProduct.Id;
 
         productList.Add ( deletedProduct );
 
-        var expected = new List<CatalogItem> ( productList ).Where ( item => !filter ( item ) ).ToList ( );
-
         var cursor = CreateMockIAsyncCursor ( productList );
-        var collection = CreateMockIMongoCollectionDelete ( cursor.Object, filter );
+        var collection = CreateMockIMongoCollectionDelete ( cursor.Object, Filter );
         var mongoFactory = CreateMockIMongoDbFactory ( collection.Object );
 
         var repo = new MongoDbCatalogItemRepository ( mongoFactory.Object );
@@ -1279,13 +1272,11 @@ public class MongoDbCatalogItemRepositoryUnitTest
     public async Task DeleteCatalogItemById_WithNoItem_ReturnsNoItem ( )
     {
         var deletedProduct = FakeModels.CreateFakeCatalogItem ( );
-        var productList = new List<CatalogItem> ( ) { };
-        bool filter ( CatalogItem item ) => item.Id == deletedProduct.Id;
-
-        var expected = new List<CatalogItem> ( productList ).Where ( item => !filter ( item ) ).ToList ( );
+        var productList = new List<CatalogItem> ( );
+        bool Filter ( CatalogItem item ) => item.Id == deletedProduct.Id;
 
         var cursor = CreateMockIAsyncCursor ( productList );
-        var collection = CreateMockIMongoCollectionDelete ( cursor.Object, filter );
+        var collection = CreateMockIMongoCollectionDelete ( cursor.Object, Filter );
         var mongoFactory = CreateMockIMongoDbFactory ( collection.Object );
 
         var repo = new MongoDbCatalogItemRepository ( mongoFactory.Object );
