@@ -17,5 +17,5 @@ public record CatalogItemGetDto
     public string Description { get; set; } = string.Empty;
 
     [Required]
-    public List<string> ImageLocation { get; set; } = new List<string> ( );
+    public List<string> ImageLocation { get; set; } = new( );
 }

@@ -4,7 +4,7 @@ namespace MongoDatabaseLibrary.Factories;
 
 public interface IMongoDbFactory
 {
-    public static readonly string archiveCollectionName = "archive";
+    public const string ArchiveCollectionName = "archive";
 
     IMongoCollection<T> GetCollection<T> ( string databaseName, string collectionName );
 

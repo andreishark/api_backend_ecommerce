@@ -10,7 +10,7 @@ public class CustomMongoDbFactory : IMongoDbFactory
     public CustomMongoDbFactory ( MongoDbSettings mongoSettings )
     {
         var settings = MongoClientSettings.FromConnectionString ( mongoSettings.ConnectionString );
-        settings.ServerApi = new ServerApi ( ServerApiVersion.V1 );
+        settings.ServerApi = new ServerApi( ServerApiVersion.V1 );
         settings.LinqProvider = LinqProvider.V3;
 
         _client = new MongoClient ( settings );
@@ -18,7 +18,7 @@ public class CustomMongoDbFactory : IMongoDbFactory
 
     public IMongoCollection<T> GetArchiveCollection<T> ( string databaseName )
     {
-        return _client.GetDatabase ( databaseName ).GetCollection<T> ( IMongoDbFactory.archiveCollectionName );
+        return _client.GetDatabase ( databaseName ).GetCollection<T> ( IMongoDbFactory.ArchiveCollectionName );
     }
 
     public IMongoCollection<T> GetCollection<T> ( string databaseName, string collectionName )

@@ -16,24 +16,24 @@ public class MongoDbCatalogItemRepository : ICatalogItemRepository
 {
     private readonly IMongoCollection<CatalogItem> _catalogItemCollection;
     private readonly IMongoCollection<CatalogItem> _archive;
-    private const string databaseName = "catalog";
-    private const string collectionName = "items";
-    private readonly FilterDefinitionBuilder<CatalogItem> filterBuilderCatalogItem = Builders<CatalogItem>.Filter;
-    private readonly UpdateDefinitionBuilder<CatalogItem> updateBuilderCatalogItem = Builders<CatalogItem>.Update;
+    private const string DatabaseName = "catalog";
+    private const string CollectionName = "items";
+    private readonly FilterDefinitionBuilder<CatalogItem> _filterBuilderCatalogItem = Builders<CatalogItem>.Filter;
+    private readonly UpdateDefinitionBuilder<CatalogItem> _updateBuilderCatalogItem = Builders<CatalogItem>.Update;
 
-    private readonly FindOneAndReplaceOptions<CatalogItem> replaceOptions = new ( )
+    private readonly FindOneAndReplaceOptions<CatalogItem> _replaceOptions = new ( )
     {
         ReturnDocument = ReturnDocument.After
     };
-    private readonly FindOneAndUpdateOptions<CatalogItem> updateOptions = new ( )
+    private readonly FindOneAndUpdateOptions<CatalogItem> _updateOptions = new ( )
     {
         ReturnDocument = ReturnDocument.After
     };
 
     public MongoDbCatalogItemRepository ( IMongoDbFactory mongoDbFactory )
     {
-        _catalogItemCollection = mongoDbFactory.GetCollection<CatalogItem> ( databaseName, collectionName );
-        _archive = mongoDbFactory.GetArchiveCollection<CatalogItem> ( databaseName );
+        _catalogItemCollection = mongoDbFactory.GetCollection<CatalogItem> ( DatabaseName, CollectionName );
+        _archive = mongoDbFactory.GetArchiveCollection<CatalogItem> ( DatabaseName );
     }
 
 
@@ -54,45 +54,45 @@ public class MongoDbCatalogItemRepository : ICatalogItemRepository
 
     public async Task<CatalogItem?> GetCatalogItemById ( Guid id )
     {
-        var filter = filterBuilderCatalogItem.Eq ( item => item.Id, id );
+        var filter = _filterBuilderCatalogItem.Eq ( item => item.Id, id );
         return await _catalogItemCollection.Find ( filter ).SingleOrDefaultAsync ( );
     }
 
     public async Task<CatalogItem?> UpdateCatalogItemNameById ( string newName, Guid id )
     {
-        var update = updateBuilderCatalogItem.Set ( item => item.Name, newName ).Set ( item => item.UpdatedDate, DateTime.UtcNow );
-        var filter = filterBuilderCatalogItem.Eq ( item => item.Id, id );
+        var update = _updateBuilderCatalogItem.Set ( item => item.Name, newName ).Set ( item => item.UpdatedDate, DateTime.UtcNow );
+        var filter = _filterBuilderCatalogItem.Eq ( item => item.Id, id );
 
-        return await _catalogItemCollection.FindOneAndUpdateAsync ( filter, update, updateOptions );
+        return await _catalogItemCollection.FindOneAndUpdateAsync ( filter, update, _updateOptions );
     }
 
     public async Task<CatalogItem?> UpdateCatalogItemPriceById ( decimal newPrice, Guid id )
     {
-        var update = updateBuilderCatalogItem.Set ( item => item.Price, newPrice ).Set ( item => item.UpdatedDate, DateTime.UtcNow );
-        var filter = filterBuilderCatalogItem.Eq ( item => item.Id, id );
+        var update = _updateBuilderCatalogItem.Set ( item => item.Price, newPrice ).Set ( item => item.UpdatedDate, DateTime.UtcNow );
+        var filter = _filterBuilderCatalogItem.Eq ( item => item.Id, id );
 
-        return await _catalogItemCollection.FindOneAndUpdateAsync ( filter, update, updateOptions );
+        return await _catalogItemCollection.FindOneAndUpdateAsync ( filter, update, _updateOptions );
     }
 
     public async Task<CatalogItem?> UpdateCatalogItemDescriptionById ( string newDescription, Guid id )
     {
-        var update = updateBuilderCatalogItem.Set ( item => item.Description, newDescription ).Set ( item => item.UpdatedDate, DateTime.UtcNow );
-        var filter = filterBuilderCatalogItem.Eq ( item => item.Id, id );
+        var update = _updateBuilderCatalogItem.Set ( item => item.Description, newDescription ).Set ( item => item.UpdatedDate, DateTime.UtcNow );
+        var filter = _filterBuilderCatalogItem.Eq ( item => item.Id, id );
 
-        return await _catalogItemCollection.FindOneAndUpdateAsync ( filter, update, updateOptions );
+        return await _catalogItemCollection.FindOneAndUpdateAsync ( filter, update, _updateOptions );
     }
 
     public async Task<CatalogItem?> UpdateCatalogItemImageById ( List<string> newImageLocation, Guid id )
     {
-        var update = updateBuilderCatalogItem.Set ( item => item.ImageLocation, newImageLocation ).Set ( item => item.UpdatedDate, DateTime.UtcNow );
-        var filter = filterBuilderCatalogItem.Eq ( item => item.Id, id );
+        var update = _updateBuilderCatalogItem.Set ( item => item.ImageLocation, newImageLocation ).Set ( item => item.UpdatedDate, DateTime.UtcNow );
+        var filter = _filterBuilderCatalogItem.Eq ( item => item.Id, id );
 
-        return await _catalogItemCollection.FindOneAndUpdateAsync ( filter, update, updateOptions );
+        return await _catalogItemCollection.FindOneAndUpdateAsync ( filter, update, _updateOptions );
     }
 
     public async Task<CatalogItem?> DeleteCatalogItemById ( Guid id )
     {
-        var filter = filterBuilderCatalogItem.Eq ( item => item.Id, id );
+        var filter = _filterBuilderCatalogItem.Eq ( item => item.Id, id );
 
         var item = await _catalogItemCollection.FindOneAndDeleteAsync ( filter );
 
@@ -107,7 +107,7 @@ public class MongoDbCatalogItemRepository : ICatalogItemRepository
 
     public async Task<CatalogItem?> ReplaceCatalogItemById ( CatalogItem newItem, Guid id )
     {
-        var filter = filterBuilderCatalogItem.Eq ( item => item.Id, id );
+        var filter = _filterBuilderCatalogItem.Eq ( item => item.Id, id );
 
         var oldItem = await _catalogItemCollection.Find ( filter ).SingleOrDefaultAsync ( );
 
@@ -124,6 +124,6 @@ public class MongoDbCatalogItemRepository : ICatalogItemRepository
             ImageLocation = newItem.ImageLocation,
         };
 
-        return await _catalogItemCollection.FindOneAndReplaceAsync ( filter, curatedItem, replaceOptions );
+        return await _catalogItemCollection.FindOneAndReplaceAsync ( filter, curatedItem, _replaceOptions );
     }
 }

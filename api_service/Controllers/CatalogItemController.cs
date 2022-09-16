@@ -103,9 +103,9 @@ public class CatalogController : ControllerBase
         }
 
         _logger.LogInformation ( "Generating Guid" );
-        var product_id = Guid.NewGuid ( );
+        var productId = Guid.NewGuid ( );
 
-        var apiPaths = await ImageManipulation.WriteImagesToDiskAsync ( staticImagesPathDisk, staticImagesPathApi, _logger, files, product_id );
+        var apiPaths = await ImageManipulation.WriteImagesToDiskAsync ( staticImagesPathDisk, staticImagesPathApi, _logger, files, productId );
 
         if ( apiPaths is null )
         {
@@ -113,7 +113,7 @@ public class CatalogController : ControllerBase
         }
 
         _logger.LogInformation ( "Creating product with name {}", product.Name );
-        var createdProduct = await _catalogItemRepository.CreateCatalogItem ( product.AsCatalogItem ( apiPaths, product_id ) );
+        var createdProduct = await _catalogItemRepository.CreateCatalogItem ( product.AsCatalogItem ( apiPaths, productId ) );
 
         if ( createdProduct == null )
         {
@@ -128,11 +128,6 @@ public class CatalogController : ControllerBase
     [HttpPatch ( "update_item/{id}/{boolAddImage}" )]
     public async Task<ActionResult<CatalogItemGetDto>> UpdateCatalogItem ( bool boolAddImage, Guid id, [FromForm] JsonPatchDocument<CatalogItemCreateDto> patchDoc )
     {
-        if ( patchDoc is null )
-        {
-            _logger.LogWarning ( "PatchDoc is null" );
-            return BadRequest ( ModelState );
-        }
         _logger.LogInformation ( "PatchDoc is not null" );
 
         if ( !ModelState.IsValid )
@@ -164,7 +159,7 @@ public class CatalogController : ControllerBase
             return Problem ( "Could not read form files" );
         }
 
-        if ( files is null || files.Length == 0 )
+        if ( files.Length == 0 )
         {
             _logger.LogWarning ( "There were no images passed, skipping" );
         }
@@ -221,7 +216,7 @@ public class CatalogController : ControllerBase
             return Problem ( "An unexpected problem occurred" );
         }
 
-        CatalogItemCreateDto oldItemCreateDto = oldItem.AsCreateDto ( );
+        var oldItemCreateDto = oldItem.AsCreateDto ( );
 
         patchDoc.ApplyTo ( oldItemCreateDto );
 
