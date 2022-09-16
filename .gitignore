@@ -2,3 +2,4 @@
 **/bin
 **/obj
 /api_service/Static/images/CatalogItems/*
+.idea
