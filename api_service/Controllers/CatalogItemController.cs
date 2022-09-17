@@ -55,7 +55,7 @@ public class CatalogController : ControllerBase
         return Ok ( items.Select ( item => item.AsGetDto ( ) ) );
     }
 
-    [HttpGet ( "get_product/{id}" )]
+    [HttpGet ( "get_product/{id:guid}" )]
     public async Task<ActionResult<CatalogItemGetDto>> GetCatalogItemById ( Guid id )
     {
         _logger.LogInformation ( "Getting item with id {}", id );
@@ -125,8 +125,16 @@ public class CatalogController : ControllerBase
         return Ok ( createdProduct.AsGetDto ( ) );
     }
 
-    [HttpPatch ( "update_item/{id}/{boolAddImage}" )]
-    public async Task<ActionResult<CatalogItemGetDto>> UpdateCatalogItem ( bool boolAddImage, Guid id, [FromForm] JsonPatchDocument<CatalogItemCreateDto> patchDoc )
+    [HttpPatch("update_item/{id:guid}")]
+    public async Task<ActionResult<CatalogItemGetDto>> UpdateCatalogItemDefault(Guid id,
+        [FromForm] JsonPatchDocument<CatalogItemCreateDto> patchDoc)
+    {
+        return await UpdateCatalogItem(patchDoc, id);
+    }
+
+    [HttpPatch ( "update_item/{id:guid}/{boolAddImage:bool}" )]
+    public async Task<ActionResult<CatalogItemGetDto>> UpdateCatalogItem(
+        [FromForm] JsonPatchDocument<CatalogItemCreateDto> patchDoc, Guid id, bool boolAddImage = true)
     {
         _logger.LogInformation ( "PatchDoc is not null" );
 
@@ -165,7 +173,11 @@ public class CatalogController : ControllerBase
         }
         else if ( boolAddImage )
         {
-            var newApiPaths = await ImageManipulation.WriteImagesToDiskAsync ( _staticImagesPathDisk, _staticImagesPathApi, _logger, files, oldItem.Id );
+            var newApiPaths = await ImageManipulation.WriteImagesToDiskAsync(_staticImagesPathDisk,
+                _staticImagesPathApi,
+                _logger,
+                files,
+                oldItem.Id);
 
             if ( newApiPaths is null )
             {
@@ -184,7 +196,7 @@ public class CatalogController : ControllerBase
                 {
                     var itemName = item.FileName;
 
-                    var filePath = apiPaths.Where ( path => path.Contains ( itemName ) ).SingleOrDefault ( );
+                    var filePath = apiPaths.SingleOrDefault (path => path.Equals ( itemName ));
 
                     if ( filePath is null )
                     {
@@ -200,7 +212,11 @@ public class CatalogController : ControllerBase
                 return Problem ( "Unexpected problem occurred" );
             }
 
-            var temp = ImageManipulation.DeleteImagesFromDisk ( _staticImagesPathDisk, _logger, pathFiles, apiPaths, id );
+            var temp = ImageManipulation.DeleteImagesFromDisk(_staticImagesPathDisk,
+                _logger,
+                pathFiles,
+                apiPaths,
+                id);
 
             if ( temp is null )
             {
@@ -232,7 +248,7 @@ public class CatalogController : ControllerBase
 
     }
 
-    [HttpDelete ( "delete_item/{id}" )]
+    [HttpDelete ( "delete_item/{id:guid}" )]
     public async Task<ActionResult<CatalogItemGetDto>> DeleteCatalogItem ( Guid id )
     {
         _logger.LogInformation ( "Deleting item with id {}", id );
