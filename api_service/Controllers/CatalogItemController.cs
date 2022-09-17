@@ -18,8 +18,8 @@ public class CatalogController : ControllerBase
     private readonly ICatalogItemRepository _catalogItemRepository;
     private readonly IApiConfiguration _config;
     private readonly IWebHostEnvironment _hostEnvironment;
-    private readonly string staticImagesPathApi = "static/images/CatalogItems";
-    private readonly string staticImagesPathDisk;
+    private readonly string _staticImagesPathApi = "static/images/CatalogItems";
+    private readonly string _staticImagesPathDisk;
 
     public CatalogController (
         ILogger<CatalogController> logger,
@@ -32,7 +32,7 @@ public class CatalogController : ControllerBase
         _config = config;
         _hostEnvironment = hostEnvironment;
 
-        staticImagesPathDisk = Path.Combine ( _hostEnvironment.ContentRootPath, "Static/images/CatalogItems" );
+        _staticImagesPathDisk = Path.Combine ( _hostEnvironment.ContentRootPath, "Static/images/CatalogItems" );
 
         _logger.LogInformation ( "CatalogController initialized" );
     }
@@ -85,11 +85,11 @@ public class CatalogController : ControllerBase
         catch ( InvalidOperationException ex )
         {
             _logger.LogError ( "Could not read form files: {}", ex.Message );
-            _logger.LogTrace ( ex.StackTrace );
+            _logger.LogTrace ( "{}", ex.StackTrace );
             return Problem ( "Could not read form files" );
         }
 
-        if ( files is null || files.Length == 0 )
+        if ( files.Length == 0 )
         {
             _logger.LogWarning ( "Product with name {} doesn't have an image", product.Name );
             return BadRequest ( "Product doesn't have an image" );
@@ -105,7 +105,7 @@ public class CatalogController : ControllerBase
         _logger.LogInformation ( "Generating Guid" );
         var productId = Guid.NewGuid ( );
 
-        var apiPaths = await ImageManipulation.WriteImagesToDiskAsync ( staticImagesPathDisk, staticImagesPathApi, _logger, files, productId );
+        var apiPaths = await ImageManipulation.WriteImagesToDiskAsync ( _staticImagesPathDisk, _staticImagesPathApi, _logger, files, productId );
 
         if ( apiPaths is null )
         {
@@ -141,7 +141,7 @@ public class CatalogController : ControllerBase
 
         if ( oldItem is null )
         {
-            _logger.LogWarning ( "Item with id {} doesn't exist", id );
+            _logger.LogWarning ( "Item with id {} doesn't exist", id);
             return BadRequest ( "Item doesn't exist" );
         }
         _logger.LogInformation ( "Item with id {} found", id );
@@ -155,7 +155,7 @@ public class CatalogController : ControllerBase
         catch ( InvalidOperationException ex )
         {
             _logger.LogError ( "Could not read form files: {}", ex.Message );
-            _logger.LogTrace ( ex.StackTrace );
+            _logger.LogTrace ("{}", ex.StackTrace );
             return Problem ( "Could not read form files" );
         }
 
@@ -165,7 +165,7 @@ public class CatalogController : ControllerBase
         }
         else if ( boolAddImage )
         {
-            var newApiPaths = await ImageManipulation.WriteImagesToDiskAsync ( staticImagesPathDisk, staticImagesPathApi, _logger, files, oldItem.Id );
+            var newApiPaths = await ImageManipulation.WriteImagesToDiskAsync ( _staticImagesPathDisk, _staticImagesPathApi, _logger, files, oldItem.Id );
 
             if ( newApiPaths is null )
             {
@@ -200,7 +200,7 @@ public class CatalogController : ControllerBase
                 return Problem ( "Unexpected problem occurred" );
             }
 
-            var temp = ImageManipulation.DeleteImagesFromDisk ( staticImagesPathDisk, _logger, pathFiles, apiPaths, id );
+            var temp = ImageManipulation.DeleteImagesFromDisk ( _staticImagesPathDisk, _logger, pathFiles, apiPaths, id );
 
             if ( temp is null )
             {
