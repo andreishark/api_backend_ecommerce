@@ -13,6 +13,4 @@ public record CatalogItemCreateDto
     [Required]
     public string Description { get; set; } = string.Empty;
 
-    [Required]
-    public string ImageLocation { get; set; } = string.Empty;
 }

@@ -39,5 +39,5 @@ public record CatalogItem
     [BsonElement ( "ImageLocation" )]
     [Required]
     [BsonRequired]
-    public string ImageLocation { get; set; } = string.Empty;
+    public List<string> ImageLocation { get; set; } = new List<string> ( );
 }

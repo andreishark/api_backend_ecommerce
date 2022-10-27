@@ -23,7 +23,7 @@ builder.Services.AddSingleton<IMongoDbFactory> ( new CustomMongoDbFactory (
     ) );
 builder.Services.AddSingleton<IApiConfiguration> ( new ApiConfiguration (
     builder.Configuration.GetSection (
-        SettingsMap.path
+        SettingsMap.Path
     )
     .Get<SettingsMap> ( )
 ) );

@@ -16,7 +16,7 @@ public interface ICatalogItemRepository
 
     public Task<CatalogItem?> UpdateCatalogItemDescriptionById ( string newDescription, Guid id );
 
-    public Task<CatalogItem?> UpdateCatalogItemImageById ( string newImageLocation, Guid id );
+    public Task<CatalogItem?> UpdateCatalogItemImageById ( List<string> newImageLocation, Guid id );
 
     public Task<CatalogItem?> ReplaceCatalogItemById ( CatalogItem newItem, Guid id );
 

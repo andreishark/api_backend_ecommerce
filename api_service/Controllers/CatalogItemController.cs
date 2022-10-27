@@ -1,10 +1,12 @@
 using api_service.ApiConfiguration;
+using api_service.Utility;
 using DatabaseLibrary;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Models;
 using Models.CreateDto;
 using Models.GetDto;
+using Models.models;
 
 namespace api_service.Controllers;
 
@@ -15,16 +17,27 @@ public class CatalogController : ControllerBase
     private readonly ILogger<CatalogController> _logger;
     private readonly ICatalogItemRepository _catalogItemRepository;
     private readonly IApiConfiguration _config;
-    private readonly string staticImagesPath = "static/images/CatalogItems";
+    private readonly IWebHostEnvironment _hostEnvironment;
+    private readonly string _staticImagesPathApi = "static/images/CatalogItems";
+    private readonly string _staticImagesPathDisk;
 
-    public CatalogController ( ILogger<CatalogController> logger, ICatalogItemRepository customersRepository, IApiConfiguration config )
+    public CatalogController (
+        ILogger<CatalogController> logger,
+        ICatalogItemRepository customersRepository,
+        IApiConfiguration config,
+        IWebHostEnvironment hostEnvironment )
     {
         _logger = logger;
         _catalogItemRepository = customersRepository;
         _config = config;
+        _hostEnvironment = hostEnvironment;
+
+        _staticImagesPathDisk = Path.Combine ( _hostEnvironment.ContentRootPath, "Static/images/CatalogItems" );
 
         _logger.LogInformation ( "CatalogController initialized" );
     }
+
+
 
     [HttpGet ( "get_products" )]
     public async Task<ActionResult<IEnumerable<CatalogItemGetDto>>> GetCatalogItems ( )
@@ -42,7 +55,7 @@ public class CatalogController : ControllerBase
         return Ok ( items.Select ( item => item.AsGetDto ( ) ) );
     }
 
-    [HttpGet ( "get_product/{id}" )]
+    [HttpGet ( "get_product/{id:guid}" )]
     public async Task<ActionResult<CatalogItemGetDto>> GetCatalogItemById ( Guid id )
     {
         _logger.LogInformation ( "Getting item with id {}", id );
@@ -59,27 +72,28 @@ public class CatalogController : ControllerBase
     }
 
     [HttpPost ( "insert_product" )]
-    public async Task<ActionResult<CatalogItemGetDto>> InsertCatalogItem ( [FromBody] CatalogItemCreateDto product )
+    public async Task<ActionResult<CatalogItemGetDto>> InsertCatalogItem ( [FromForm] CatalogItemCreateDto product )
     {
 
-        _logger.LogInformation ( "Getting product image" );
+        _logger.LogInformation ( "Getting product images" );
 
-        // IFormFile? file;
-        // try
-        // {
-        //     file = Request.Form.Files.SingleOrDefault ( );
-        // }
-        // catch ( InvalidOperationException e )
-        // {
-        //     _logger.LogError ( "Could not read form files: {}", e.Message );
-        //     return Problem ( "Could not read form files" );
-        // }
+        IFormFile [ ]? files;
+        try
+        {
+            files = Request.Form.Files.ToArray ( );
+        }
+        catch ( InvalidOperationException ex )
+        {
+            _logger.LogError ( "Could not read form files: {}", ex.Message );
+            _logger.LogTrace ( "{}", ex.StackTrace );
+            return Problem ( "Could not read form files" );
+        }
 
-        // if ( file is null )
-        // {
-        //     _logger.LogWarning ( "Product with name {} doesn't have an image", product.Name );
-        //     return BadRequest ( ModelState );
-        // }
+        if ( files.Length == 0 )
+        {
+            _logger.LogWarning ( "Product with name {} doesn't have an image", product.Name );
+            return BadRequest ( "Product doesn't have an image" );
+        }
 
         _logger.LogInformation ( "Verifying model" );
         if ( !ModelState.IsValid )
@@ -88,8 +102,18 @@ public class CatalogController : ControllerBase
             return BadRequest ( ModelState );
         }
 
+        _logger.LogInformation ( "Generating Guid" );
+        var productId = Guid.NewGuid ( );
+
+        var apiPaths = await ImageManipulation.WriteImagesToDiskAsync ( _staticImagesPathDisk, _staticImagesPathApi, _logger, files, productId );
+
+        if ( apiPaths is null )
+        {
+            return Problem ( "There were problems in creating the files" );
+        }
+
         _logger.LogInformation ( "Creating product with name {}", product.Name );
-        var createdProduct = await _catalogItemRepository.CreateCatalogItem ( product.AsCatalogItem ( ) );
+        var createdProduct = await _catalogItemRepository.CreateCatalogItem ( product.AsCatalogItem ( apiPaths, productId ) );
 
         if ( createdProduct == null )
         {
@@ -101,14 +125,17 @@ public class CatalogController : ControllerBase
         return Ok ( createdProduct.AsGetDto ( ) );
     }
 
-    [HttpPatch ( "update_item/{id}" )]
-    public async Task<ActionResult<CatalogItemGetDto>> UpdateCatalogItem ( Guid id, [FromBody] JsonPatchDocument<CatalogItemCreateDto> patchDoc )
+    [HttpPatch("update_item/{id:guid}")]
+    public async Task<ActionResult<CatalogItemGetDto>> UpdateCatalogItemDefault(Guid id,
+        [FromForm] JsonPatchDocument<CatalogItemCreateDto> patchDoc)
     {
-        if ( patchDoc is null )
-        {
-            _logger.LogWarning ( "PatchDoc is null" );
-            return BadRequest ( ModelState );
-        }
+        return await UpdateCatalogItem(patchDoc, id);
+    }
+
+    [HttpPatch ( "update_item/{id:guid}/{boolAddImage:bool}" )]
+    public async Task<ActionResult<CatalogItemGetDto>> UpdateCatalogItem(
+        [FromForm] JsonPatchDocument<CatalogItemCreateDto> patchDoc, Guid id, bool boolAddImage = true)
+    {
         _logger.LogInformation ( "PatchDoc is not null" );
 
         if ( !ModelState.IsValid )
@@ -122,16 +149,96 @@ public class CatalogController : ControllerBase
 
         if ( oldItem is null )
         {
-            _logger.LogWarning ( "Item with id {} doesn't exist", id );
+            _logger.LogWarning ( "Item with id {} doesn't exist", id);
             return BadRequest ( "Item doesn't exist" );
         }
         _logger.LogInformation ( "Item with id {} found", id );
 
-        CatalogItemCreateDto oldItemCreateDto = oldItem.AsCreateDto ( );
+        IFormFile [ ]? files;
+        List<string> apiPaths = oldItem.ImageLocation;
+        try
+        {
+            files = Request.Form.Files.ToArray ( );
+        }
+        catch ( InvalidOperationException ex )
+        {
+            _logger.LogError ( "Could not read form files: {}", ex.Message );
+            _logger.LogTrace ("{}", ex.StackTrace );
+            return Problem ( "Could not read form files" );
+        }
+
+        if ( files.Length == 0 )
+        {
+            _logger.LogWarning ( "There were no images passed, skipping" );
+        }
+        else if ( boolAddImage )
+        {
+            var newApiPaths = await ImageManipulation.WriteImagesToDiskAsync(_staticImagesPathDisk,
+                _staticImagesPathApi,
+                _logger,
+                files,
+                oldItem.Id);
+
+            if ( newApiPaths is null )
+            {
+                _logger.LogCritical ( "Could not write images to disk" );
+                return Problem ( "Images couldn't be written to disk" );
+            }
+
+            apiPaths.AddRange ( newApiPaths );
+        }
+        else if ( !boolAddImage )
+        {
+            List<string> pathFiles;
+            try
+            {
+                pathFiles = files.Select ( item =>
+                {
+                    var itemName = item.FileName;
+
+                    var filePath = apiPaths.SingleOrDefault (path => path.Equals ( itemName ));
+
+                    if ( filePath is null )
+                    {
+                        _logger.LogCritical ( "Code violations" );
+                        throw new NullReferenceException ( );
+                    }
+
+                    return filePath;
+                } ).ToList ( );
+            }
+            catch ( NullReferenceException )
+            {
+                return Problem ( "Unexpected problem occurred" );
+            }
+
+            var temp = ImageManipulation.DeleteImagesFromDisk(_staticImagesPathDisk,
+                _logger,
+                pathFiles,
+                apiPaths,
+                id);
+
+            if ( temp is null )
+            {
+                _logger.LogError ( "Couldn't delete images from disk" );
+                return Problem ( "Couldn't delete images from disk" );
+            }
+
+            apiPaths = temp;
+        }
+        else
+        {
+            _logger.LogCritical ( "Code violations were detected" );
+            return Problem ( "An unexpected problem occurred" );
+        }
+
+        var oldItemCreateDto = oldItem.AsCreateDto ( );
 
         patchDoc.ApplyTo ( oldItemCreateDto );
 
-        var newItem = oldItemCreateDto.AsCatalogItem ( );
+        CatalogItem? newItem;
+
+        newItem = oldItemCreateDto.AsCatalogItem ( apiPaths, oldItem.Id, oldItem.CreatedDate );
 
         _logger.LogInformation ( "Replacing item with id {}", id );
         var returnedItem = await _catalogItemRepository.ReplaceCatalogItemById ( newItem, id );
@@ -141,7 +248,7 @@ public class CatalogController : ControllerBase
 
     }
 
-    [HttpDelete ( "delete_item/{id}" )]
+    [HttpDelete ( "delete_item/{id:guid}" )]
     public async Task<ActionResult<CatalogItemGetDto>> DeleteCatalogItem ( Guid id )
     {
         _logger.LogInformation ( "Deleting item with id {}", id );
