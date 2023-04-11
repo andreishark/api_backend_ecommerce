@@ -7,122 +7,201 @@ using Models;
 using Models.CreateDto;
 using Models.GetDto;
 using Models.models;
+using InvalidOperationException = System.InvalidOperationException;
 
 namespace api_service.Controllers;
 
 [ApiController]
-[Route ( "api/catalog" )]
+[Route("api/catalog")]
 public class CatalogController : ControllerBase
 {
     private readonly ILogger<CatalogController> _logger;
     private readonly ICatalogItemRepository _catalogItemRepository;
     private readonly IApiConfiguration _config;
-    private readonly IWebHostEnvironment _hostEnvironment;
-    private readonly string _staticImagesPathApi = "static/images/CatalogItems";
+    private const string StaticImagesPathApi = "static/images/CatalogItems";
     private readonly string _staticImagesPathDisk;
 
-    public CatalogController (
+    public CatalogController(
         ILogger<CatalogController> logger,
         ICatalogItemRepository customersRepository,
         IApiConfiguration config,
-        IWebHostEnvironment hostEnvironment )
+        IHostEnvironment hostEnvironment)
     {
         _logger = logger;
         _catalogItemRepository = customersRepository;
         _config = config;
-        _hostEnvironment = hostEnvironment;
 
-        _staticImagesPathDisk = Path.Combine ( _hostEnvironment.ContentRootPath, "Static/images/CatalogItems" );
+        _staticImagesPathDisk = Path.Combine(hostEnvironment.ContentRootPath, "Static/images/CatalogItems");
 
-        _logger.LogInformation ( "CatalogController initialized" );
+        _logger.LogInformation("CatalogController initialized");
     }
 
-
-
-    [HttpGet ( "get_products" )]
-    public async Task<ActionResult<IEnumerable<CatalogItemGetDto>>> GetCatalogItems ( )
+    private (List<string> pathFiles, ActionResult<CatalogItemGetDto> problem) GetImageNamesFromFiles(
+        IEnumerable<IFormFile> files, IReadOnlyCollection<string> apiPaths, Guid itemId)
     {
-        _logger.LogInformation ( "Getting items" );
-        var items = await _catalogItemRepository.GetAllCatalogItems ( );
+        List<string> pathFiles = files.Select(item => item.FileName)
+            .Select(itemName =>
+                apiPaths.SingleOrDefault(path => path.Equals($"{StaticImagesPathApi}/{itemId}/{itemName}")))
+            .Where(filePath => filePath != null)
+            .ToList()!;
 
-        if ( items is null )
+        return (pathFiles, Ok());
+    }
+
+    private async Task<(List<string> apiPaths, ActionResult<CatalogItemGetDto> problem)> HandleImageUpdateCatalogItem(
+        Guid id, bool boolAddImage, IReadOnlyCollection<IFormFile> files, CatalogItem oldItem,
+        List<string> apiPaths)
+    {
+        ActionResult<CatalogItemGetDto> problem = Ok();
+        if (files.Count != 0)
         {
-            _logger.LogWarning ( "Items not found" );
-            return NotFound ( "There aren't any items in the catalog" );
+            (apiPaths, var imageProblem) =
+                await HandleImageCreationAndDeletion(id, boolAddImage, files, oldItem, apiPaths);
+            if (imageProblem.Result is not OkResult)
+                problem = imageProblem;
+        }
+        else
+            _logger.LogWarning("There were no images passed, skipping");
+
+        return (apiPaths, problem);
+    }
+
+    private async Task<(List<string> apiPaths, ActionResult<CatalogItemGetDto> problem)> HandleImageCreationAndDeletion(
+        Guid id, bool boolAddImage, IEnumerable<IFormFile> files, CatalogItem oldItem,
+        List<string> apiPaths)
+    {
+        switch (boolAddImage)
+        {
+            case true:
+            {
+                var newApiPaths = await ImageManipulation.WriteImagesToDiskAsync(_staticImagesPathDisk,
+                    StaticImagesPathApi,
+                    _logger,
+                    files,
+                    oldItem.Id);
+
+                if (newApiPaths is null)
+                {
+                    _logger.LogCritical("Could not write images to disk");
+                    return (apiPaths, Problem("Images couldn't be written to disk"));
+                }
+
+                apiPaths.AddRange(newApiPaths);
+                break;
+            }
+            case false:
+            {
+                var (pathFiles, actionResult) = GetImageNamesFromFiles(files, apiPaths, id);
+                if (actionResult.Result is not OkResult)
+                {
+                    return (apiPaths, actionResult);
+                }
+
+                var temp = ImageManipulation.DeleteImagesFromDisk(_staticImagesPathDisk,
+                    _logger,
+                    pathFiles,
+                    apiPaths,
+                    id);
+
+                if (temp is null)
+                {
+                    _logger.LogError("Couldn't delete images from disk");
+                    return (apiPaths, Problem("Couldn't delete images from disk"));
+                }
+
+                apiPaths = temp;
+                break;
+            }
         }
 
-        _logger.LogInformation ( "Items found, returning" );
-        return Ok ( items.Select ( item => item.AsGetDto ( ) ) );
+        return (apiPaths, Ok());
     }
 
-    [HttpGet ( "get_product/{id:guid}" )]
-    public async Task<ActionResult<CatalogItemGetDto>> GetCatalogItemById ( Guid id )
-    {
-        _logger.LogInformation ( "Getting item with id {}", id );
-        var item = await _catalogItemRepository.GetCatalogItemById ( id );
 
-        if ( item is null )
+    [HttpGet("get_products")]
+    public async Task<ActionResult<IEnumerable<CatalogItemGetDto>>> GetCatalogItems()
+    {
+        _logger.LogInformation("Getting items");
+        var items = await _catalogItemRepository.GetAllCatalogItems();
+
+        if (items is null)
         {
-            _logger.LogWarning ( "Item with id {} could not be found", id );
-            return NotFound ( );
+            _logger.LogWarning("Items not found");
+            return NotFound("There aren't any items in the catalog");
         }
 
-        _logger.LogInformation ( "Product with id {} found", id );
-        return Ok ( item );
+        _logger.LogInformation("Items found, returning");
+        return Ok(items.Select(item => item.AsGetDto()));
     }
 
-    [HttpPost ( "insert_product" )]
-    public async Task<ActionResult<CatalogItemGetDto>> InsertCatalogItem ( [FromForm] CatalogItemCreateDto product )
+    [HttpGet("get_product/{id:guid}")]
+    public async Task<ActionResult<CatalogItemGetDto>> GetCatalogItemById(Guid id)
     {
+        _logger.LogInformation("Getting item with id {}", id);
+        var item = await _catalogItemRepository.GetCatalogItemById(id);
 
-        _logger.LogInformation ( "Getting product images" );
+        if (item is null)
+        {
+            _logger.LogWarning("Item with id {} could not be found", id);
+            return NotFound();
+        }
 
-        IFormFile [ ]? files;
+        _logger.LogInformation("Product with id {} found", id);
+        return Ok(item);
+    }
+
+    [HttpPost("insert_product")]
+    public async Task<ActionResult<CatalogItemGetDto>> InsertCatalogItem([FromForm] CatalogItemCreateDto product)
+    {
+        _logger.LogInformation("Getting product images");
+
+        IFormFile[]? files;
         try
         {
-            files = Request.Form.Files.ToArray ( );
+            files = Request.Form.Files.ToArray();
         }
-        catch ( InvalidOperationException ex )
+        catch (InvalidOperationException ex)
         {
-            _logger.LogError ( "Could not read form files: {}", ex.Message );
-            _logger.LogTrace ( "{}", ex.StackTrace );
-            return Problem ( "Could not read form files" );
+            _logger.LogError("Could not read form files: {}", ex.Message);
+            _logger.LogTrace("{}", ex.StackTrace);
+            return Problem("Could not read form files");
         }
 
-        if ( files.Length == 0 )
+        if (files.Length == 0)
         {
-            _logger.LogWarning ( "Product with name {} doesn't have an image", product.Name );
-            return BadRequest ( "Product doesn't have an image" );
+            _logger.LogWarning("Product with name {} doesn't have an image", product.Name);
+            return BadRequest("Product doesn't have an image");
         }
 
-        _logger.LogInformation ( "Verifying model" );
-        if ( !ModelState.IsValid )
+        _logger.LogInformation("Verifying model");
+        if (!ModelState.IsValid)
         {
-            _logger.LogWarning ( "Model invalid, not uploading product with name {}", product.Name );
-            return BadRequest ( ModelState );
+            _logger.LogWarning("Model invalid, not uploading product with name {}", product.Name);
+            return BadRequest(ModelState);
         }
 
-        _logger.LogInformation ( "Generating Guid" );
-        var productId = Guid.NewGuid ( );
+        _logger.LogInformation("Generating Guid");
+        var productId = Guid.NewGuid();
 
-        var apiPaths = await ImageManipulation.WriteImagesToDiskAsync ( _staticImagesPathDisk, _staticImagesPathApi, _logger, files, productId );
+        var apiPaths = await ImageManipulation.WriteImagesToDiskAsync(_staticImagesPathDisk, StaticImagesPathApi,
+            _logger, files, productId);
 
-        if ( apiPaths is null )
+        if (apiPaths is null)
         {
-            return Problem ( "There were problems in creating the files" );
+            return Problem("There were problems in creating the files");
         }
 
-        _logger.LogInformation ( "Creating product with name {}", product.Name );
-        var createdProduct = await _catalogItemRepository.CreateCatalogItem ( product.AsCatalogItem ( apiPaths, productId ) );
+        _logger.LogInformation("Creating product with name {}", product.Name);
+        var createdProduct = await _catalogItemRepository.CreateCatalogItem(product.AsCatalogItem(apiPaths, productId));
 
-        if ( createdProduct == null )
+        if (createdProduct == null)
         {
-            _logger.LogWarning ( "Product with name {} could not be created", product.Name );
-            return BadRequest ( ModelState );
+            _logger.LogWarning("Product with name {} could not be created", product.Name);
+            return BadRequest(ModelState);
         }
 
-        _logger.LogInformation ( "Product with name {} created successfully", product.Name );
-        return Ok ( createdProduct.AsGetDto ( ) );
+        _logger.LogInformation("Product with name {} created successfully", product.Name);
+        return Ok(createdProduct.AsGetDto());
     }
 
     [HttpPatch("update_item/{id:guid}")]
@@ -132,135 +211,72 @@ public class CatalogController : ControllerBase
         return await UpdateCatalogItem(patchDoc, id);
     }
 
-    [HttpPatch ( "update_item/{id:guid}/{boolAddImage:bool}" )]
+    [HttpPatch("update_item/{id:guid}/{boolAddImage:bool}")]
     public async Task<ActionResult<CatalogItemGetDto>> UpdateCatalogItem(
         [FromForm] JsonPatchDocument<CatalogItemCreateDto> patchDoc, Guid id, bool boolAddImage = true)
     {
-        _logger.LogInformation ( "PatchDoc is not null" );
+        _logger.LogInformation("PatchDoc is not null");
 
-        if ( !ModelState.IsValid )
+        if (!ModelState.IsValid)
         {
-            _logger.LogWarning ( "PatchDoc is not valid" );
-            return BadRequest ( ModelState );
+            _logger.LogWarning("PatchDoc is not valid");
+            return BadRequest(ModelState);
         }
-        _logger.LogInformation ( "PatchDoc is valid" );
 
-        var oldItem = await _catalogItemRepository.GetCatalogItemById ( id );
+        _logger.LogInformation("PatchDoc is valid");
 
-        if ( oldItem is null )
+        var oldItem = await _catalogItemRepository.GetCatalogItemById(id);
+
+        if (oldItem is null)
         {
-            _logger.LogWarning ( "Item with id {} doesn't exist", id);
-            return BadRequest ( "Item doesn't exist" );
+            _logger.LogWarning("Item with id {} doesn't exist", id);
+            return NotFound();
         }
-        _logger.LogInformation ( "Item with id {} found", id );
 
-        IFormFile [ ]? files;
-        List<string> apiPaths = oldItem.ImageLocation;
+        _logger.LogInformation("Item with id {} found", id);
+
+        IFormFile[]? files;
+        var apiPaths = oldItem.ImageLocation;
         try
         {
-            files = Request.Form.Files.ToArray ( );
+            files = Request.Form.Files.ToArray();
         }
-        catch ( InvalidOperationException ex )
+        catch (InvalidOperationException ex)
         {
-            _logger.LogError ( "Could not read form files: {}", ex.Message );
-            _logger.LogTrace ("{}", ex.StackTrace );
-            return Problem ( "Could not read form files" );
+            _logger.LogError("Could not read form files: {}", ex.Message);
+            _logger.LogTrace("{}", ex.StackTrace);
+            return Problem("Could not read form files");
         }
 
-        if ( files.Length == 0 )
-        {
-            _logger.LogWarning ( "There were no images passed, skipping" );
-        }
-        else if ( boolAddImage )
-        {
-            var newApiPaths = await ImageManipulation.WriteImagesToDiskAsync(_staticImagesPathDisk,
-                _staticImagesPathApi,
-                _logger,
-                files,
-                oldItem.Id);
+        (apiPaths, var problem) = await HandleImageUpdateCatalogItem(id, boolAddImage, files, oldItem, apiPaths);
+        if (problem.Result is not OkResult) return problem;
 
-            if ( newApiPaths is null )
-            {
-                _logger.LogCritical ( "Could not write images to disk" );
-                return Problem ( "Images couldn't be written to disk" );
-            }
+        var oldItemCreateDto = oldItem.AsCreateDto();
 
-            apiPaths.AddRange ( newApiPaths );
-        }
-        else if ( !boolAddImage )
-        {
-            List<string> pathFiles;
-            try
-            {
-                pathFiles = files.Select ( item =>
-                {
-                    var itemName = item.FileName;
+        patchDoc.ApplyTo(oldItemCreateDto);
 
-                    var filePath = apiPaths.SingleOrDefault (path => path.Equals ( itemName ));
+        var newItem = oldItemCreateDto.AsCatalogItem(apiPaths, oldItem.Id, oldItem.CreatedDate);
 
-                    if ( filePath is null )
-                    {
-                        _logger.LogCritical ( "Code violations" );
-                        throw new NullReferenceException ( );
-                    }
+        _logger.LogInformation("Replacing item with id {}", id);
+        var returnedItem = await _catalogItemRepository.ReplaceCatalogItemById(newItem, id);
+        _logger.LogInformation("Replacement with item {} was successfully applied", id);
 
-                    return filePath;
-                } ).ToList ( );
-            }
-            catch ( NullReferenceException )
-            {
-                return Problem ( "Unexpected problem occurred" );
-            }
-
-            var temp = ImageManipulation.DeleteImagesFromDisk(_staticImagesPathDisk,
-                _logger,
-                pathFiles,
-                apiPaths,
-                id);
-
-            if ( temp is null )
-            {
-                _logger.LogError ( "Couldn't delete images from disk" );
-                return Problem ( "Couldn't delete images from disk" );
-            }
-
-            apiPaths = temp;
-        }
-        else
-        {
-            _logger.LogCritical ( "Code violations were detected" );
-            return Problem ( "An unexpected problem occurred" );
-        }
-
-        var oldItemCreateDto = oldItem.AsCreateDto ( );
-
-        patchDoc.ApplyTo ( oldItemCreateDto );
-
-        CatalogItem? newItem;
-
-        newItem = oldItemCreateDto.AsCatalogItem ( apiPaths, oldItem.Id, oldItem.CreatedDate );
-
-        _logger.LogInformation ( "Replacing item with id {}", id );
-        var returnedItem = await _catalogItemRepository.ReplaceCatalogItemById ( newItem, id );
-        _logger.LogInformation ( "Replacement with item {} was successfully applied", id );
-
-        return Ok ( returnedItem );
-
+        return Ok(returnedItem);
     }
 
-    [HttpDelete ( "delete_item/{id:guid}" )]
-    public async Task<ActionResult<CatalogItemGetDto>> DeleteCatalogItem ( Guid id )
+    [HttpDelete("delete_item/{id:guid}")]
+    public async Task<ActionResult<CatalogItemGetDto>> DeleteCatalogItem(Guid id)
     {
-        _logger.LogInformation ( "Deleting item with id {}", id );
-        var item = await _catalogItemRepository.DeleteCatalogItemById ( id );
+        _logger.LogInformation("Deleting item with id {}", id);
+        var item = await _catalogItemRepository.DeleteCatalogItemById(id);
 
-        if ( item is null )
+        if (item is null)
         {
-            _logger.LogWarning ( "Item with id {} was not found", id );
-            return BadRequest ( ModelState );
+            _logger.LogWarning("Item with id {} was not found", id);
+            return BadRequest(ModelState);
         }
 
-        _logger.LogInformation ( "Item with id {} was successfully deleted and archived", id );
-        return Ok ( item );
+        _logger.LogInformation("Item with id {} was successfully deleted and archived", id);
+        return Ok(item);
     }
 }
